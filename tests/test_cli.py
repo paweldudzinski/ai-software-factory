@@ -38,6 +38,7 @@ def test_info_prints_status(runner: CliRunner, config_file: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert result.output == (
+        " \n"
         "AI Software Factory\n"
         "-------------------\n"
         f"Version:       {version('software-factory')}\n"

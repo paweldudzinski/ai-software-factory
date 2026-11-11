@@ -6,7 +6,10 @@ import typer
 from rich.console import Console
 from rich.markup import escape
 
-from software_factory.infrastructure.config.loader import ConfigError, load_config
+from software_factory.infrastructure.config.loader import (
+    ConfigError,
+    load_config,
+)
 
 DEFAULT_CONFIG_PATH = Path("config/factory.yaml")
 TITLE = "AI Software Factory"

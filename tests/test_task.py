@@ -64,4 +64,4 @@ def test_is_immutable() -> None:
     task = make_task()
 
     with pytest.raises(ValidationError):
-        task.title = "Changed"  # type: ignore[misc]
+        task.title = "Changed"

@@ -17,6 +17,6 @@ class Task(BaseModel):
 
     id: NonEmptyStr
     title: NonEmptyStr
-    description:NonEmptyStr
+    description: NonEmptyStr
     created_at: AwareDatetime
     status: TaskStatus = TaskStatus.QUEUED
