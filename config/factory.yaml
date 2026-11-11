@@ -1,0 +1,11 @@
+factory:
+  name: software-factory
+  environment: local
+
+llm:
+  provider: anthropic
+  model: YOUR_MODEL
+
+runtime:
+  workspace: ./workspace
+  max_iterations: 10

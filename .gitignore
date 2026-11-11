@@ -1,0 +1,35 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Test & tool caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+
+# Factory runtime workspace (runtime.workspace in config/factory.yaml)
+workspace/
+
+# Editors & OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
