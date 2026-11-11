@@ -55,7 +55,8 @@ def info(
     ]
     width = max(len(label) for label, _ in rows) + 2
 
-    typer.echo(TITLE)
+    typer.echo(" ")
+    console.print(f"[bold green]{TITLE}[/]")
     typer.echo("-" * 19)
     for label, value in rows:
         typer.echo(f"{label + ':':<{width}}{value}")
