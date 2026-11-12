@@ -69,6 +69,7 @@ def test_prints_response(
         "-------------------\n"
         "Input tokens: 12\n"
         "Output tokens: 150\n"
+        "Stop reason: end_turn\n"
         "Request ID: req_018EeWyXxfu5pfWkrYcMdjWG\n"
     )
 

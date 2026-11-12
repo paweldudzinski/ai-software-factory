@@ -26,7 +26,7 @@ class LLMProvider(Protocol):
     the domain models to and from the vendor SDK.
     """
 
-    async def complete(
+    async def generate(
         self,
         request: LLMRequest,
     ) -> LLMResponse:

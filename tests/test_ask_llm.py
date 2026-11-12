@@ -30,7 +30,7 @@ class FakeProvider:
         self.error = error
         self.requests: list[LLMRequest] = []
 
-    async def complete(self, request: LLMRequest) -> LLMResponse:
+    async def generate(self, request: LLMRequest) -> LLMResponse:
         self.requests.append(request)
         if self.error is not None:
             raise self.error

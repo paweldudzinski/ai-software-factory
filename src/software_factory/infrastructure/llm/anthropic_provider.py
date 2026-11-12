@@ -33,17 +33,12 @@ class AnthropicProvider:
     async SDK, and the returned Message back into LLMResponse.
     """
 
-    def __init__(self, client: AsyncAnthropic | None = None) -> None:
-        # Without an explicit client, credentials are resolved by the SDK
+    def __init__(self) -> None:
+        # Credentials are resolved by the SDK
         # (ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN or an `ant auth login` profile).
-        try:
-            self._client = client or AsyncAnthropic()
-        except anthropic.AnthropicError as exc:
-            raise AnthropicProviderError(
-                f"Cannot create Anthropic client: {exc}"
-            ) from exc
+        self._client = AsyncAnthropic()
 
-    async def complete(self, request: LLMRequest) -> LLMResponse:
+    async def generate(self, request: LLMRequest) -> LLMResponse:
         try:
             message = await self._client.messages.create(
                 model=request.model,

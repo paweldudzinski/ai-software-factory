@@ -22,6 +22,7 @@ from software_factory.infrastructure.llm.anthropic_provider import (
 
 MODEL = "claude-sonnet-5-5"
 REQUEST_ID = "req_018EeWyXxfu5pfWkrYcMdjWG"
+PROVIDER_MODULE = "software_factory.infrastructure.llm.anthropic_provider"
 
 TEXT = {"type": "text", "text": "Hello!", "citations": None}
 THINKING = {"type": "thinking", "thinking": "", "signature": "sig"}
@@ -49,11 +50,20 @@ def make_message(
     return message
 
 
-def make_provider(message: Message) -> tuple[AnthropicProvider, AsyncMock]:
+@pytest.fixture
+def client(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Replace the SDK client created by AnthropicProvider, so no API is called."""
+    fake = MagicMock(spec=AsyncAnthropic)
+    monkeypatch.setattr(f"{PROVIDER_MODULE}.AsyncAnthropic", lambda: fake)
+    return fake
+
+
+def make_provider(
+    client: MagicMock, message: Message
+) -> tuple[AnthropicProvider, AsyncMock]:
     create = AsyncMock(return_value=message)
-    client = MagicMock(spec=AsyncAnthropic)
     client.messages.create = create
-    return AnthropicProvider(client=client), create
+    return AnthropicProvider(), create
 
 
 def make_request(**overrides: Any) -> LLMRequest:
@@ -66,15 +76,15 @@ def make_request(**overrides: Any) -> LLMRequest:
     return LLMRequest(**data)
 
 
-def complete(provider: AnthropicProvider, request: LLMRequest) -> LLMResponse:
-    return asyncio.run(provider.complete(request))
+def generate(provider: AnthropicProvider, request: LLMRequest) -> LLMResponse:
+    return asyncio.run(provider.generate(request))
 
 
 # --- request mapping --------------------------------------------------------
 
 
-def test_maps_request_to_messages_api_params() -> None:
-    provider, create = make_provider(make_message())
+def test_maps_request_to_messages_api_params(client: MagicMock) -> None:
+    provider, create = make_provider(client, make_message())
     request = make_request(
         system_prompt="You are a helpful assistant.",
         messages=[
@@ -84,7 +94,7 @@ def test_maps_request_to_messages_api_params() -> None:
         ],
     )
 
-    complete(provider, request)
+    generate(provider, request)
 
     create.assert_awaited_once_with(
         model=MODEL,
@@ -98,10 +108,10 @@ def test_maps_request_to_messages_api_params() -> None:
     )
 
 
-def test_omits_system_when_no_system_prompt() -> None:
-    provider, create = make_provider(make_message())
+def test_omits_system_when_no_system_prompt(client: MagicMock) -> None:
+    provider, create = make_provider(client, make_message())
 
-    complete(provider, make_request())
+    generate(provider, make_request())
 
     assert create.await_args is not None
     assert create.await_args.kwargs["system"] is omit
@@ -110,10 +120,10 @@ def test_omits_system_when_no_system_prompt() -> None:
 # --- response mapping -------------------------------------------------------
 
 
-def test_maps_response() -> None:
-    provider, _ = make_provider(make_message())
+def test_maps_response(client: MagicMock) -> None:
+    provider, _ = make_provider(client, make_message())
 
-    response = complete(provider, make_request())
+    response = generate(provider, make_request())
 
     assert response.content == "Hello!"
     assert response.model == MODEL
@@ -123,23 +133,23 @@ def test_maps_response() -> None:
     assert response.request_id == REQUEST_ID
 
 
-def test_skips_non_text_blocks_before_text() -> None:
-    provider, _ = make_provider(make_message(content=[THINKING, TEXT]))
+def test_skips_non_text_blocks_before_text(client: MagicMock) -> None:
+    provider, _ = make_provider(client, make_message(content=[THINKING, TEXT]))
 
-    response = complete(provider, make_request())
+    response = generate(provider, make_request())
 
     assert response.content == "Hello!"
 
 
-def test_concatenates_multiple_text_blocks() -> None:
+def test_concatenates_multiple_text_blocks(client: MagicMock) -> None:
     blocks: list[dict[str, Any]] = [
         {"type": "text", "text": "The answer ", "citations": None},
         THINKING,
         {"type": "text", "text": "is 42.", "citations": None},
     ]
-    provider, _ = make_provider(make_message(content=blocks))
+    provider, _ = make_provider(client, make_message(content=blocks))
 
-    response = complete(provider, make_request())
+    response = generate(provider, make_request())
 
     assert response.content == "The answer is 42."
 
@@ -153,29 +163,31 @@ def test_concatenates_multiple_text_blocks() -> None:
     ],
 )
 def test_returns_empty_content_when_no_text(
-    content: list[dict[str, Any]], stop_reason: str
+    client: MagicMock, content: list[dict[str, Any]], stop_reason: str
 ) -> None:
-    provider, _ = make_provider(make_message(content=content, stop_reason=stop_reason))
+    provider, _ = make_provider(
+        client, make_message(content=content, stop_reason=stop_reason)
+    )
 
-    response = complete(provider, make_request())
+    response = generate(provider, make_request())
 
     assert response.content == ""
     assert response.stop_reason is StopReason(stop_reason)
 
 
-def test_allows_missing_request_id() -> None:
-    provider, _ = make_provider(make_message(request_id=None))
+def test_allows_missing_request_id(client: MagicMock) -> None:
+    provider, _ = make_provider(client, make_message(request_id=None))
 
-    response = complete(provider, make_request())
+    response = generate(provider, make_request())
 
     assert response.request_id is None
 
 
-def test_raises_on_missing_stop_reason() -> None:
-    provider, _ = make_provider(make_message(stop_reason=None))
+def test_raises_on_missing_stop_reason(client: MagicMock) -> None:
+    provider, _ = make_provider(client, make_message(stop_reason=None))
 
     with pytest.raises(AnthropicProviderError, match="stop_reason") as exc_info:
-        complete(provider, make_request())
+        generate(provider, make_request())
 
     assert exc_info.value.request_id == REQUEST_ID
 
@@ -185,13 +197,12 @@ def test_raises_on_missing_stop_reason() -> None:
 API_REQUEST = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
 
 
-def make_failing_provider(error: Exception) -> AnthropicProvider:
-    client = MagicMock(spec=AsyncAnthropic)
+def make_failing_provider(client: MagicMock, error: Exception) -> AnthropicProvider:
     client.messages.create = AsyncMock(side_effect=error)
-    return AnthropicProvider(client=client)
+    return AnthropicProvider()
 
 
-def test_translates_api_status_error() -> None:
+def test_translates_api_status_error(client: MagicMock) -> None:
     error = anthropic.RateLimitError(
         "rate limited",
         response=httpx2.Response(
@@ -199,35 +210,24 @@ def test_translates_api_status_error() -> None:
         ),
         body={"error": {"type": "rate_limit_error", "message": "Slow down"}},
     )
-    provider = make_failing_provider(error)
+    provider = make_failing_provider(client, error)
 
     with pytest.raises(LLMProviderError, match="429: Slow down") as exc_info:
-        complete(provider, make_request())
+        generate(provider, make_request())
 
     assert exc_info.value.request_id == REQUEST_ID
     assert exc_info.value.__cause__ is error
 
 
-def test_translates_connection_error() -> None:
-    provider = make_failing_provider(anthropic.APIConnectionError(request=API_REQUEST))
-
-    with pytest.raises(LLMProviderError, match="Cannot connect") as exc_info:
-        complete(provider, make_request())
-
-    assert exc_info.value.request_id is None
-
-
-def test_translates_missing_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
-    def no_credentials() -> AsyncAnthropic:
-        raise anthropic.AnthropicError("no credentials")
-
-    monkeypatch.setattr(
-        "software_factory.infrastructure.llm.anthropic_provider.AsyncAnthropic",
-        no_credentials,
+def test_translates_connection_error(client: MagicMock) -> None:
+    provider = make_failing_provider(
+        client, anthropic.APIConnectionError(request=API_REQUEST)
     )
 
-    with pytest.raises(LLMProviderError, match="Cannot create Anthropic client"):
-        AnthropicProvider()
+    with pytest.raises(LLMProviderError, match="Cannot connect") as exc_info:
+        generate(provider, make_request())
+
+    assert exc_info.value.request_id is None
 
 
 # --- wiring -----------------------------------------------------------------
@@ -241,26 +241,26 @@ def test_creates_default_client(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(provider._client, AsyncAnthropic)
 
 
-def test_satisfies_llm_provider_port() -> None:
-    provider: LLMProvider = AnthropicProvider(client=MagicMock(spec=AsyncAnthropic))
+def test_satisfies_llm_provider_port(client: MagicMock) -> None:
+    provider: LLMProvider = AnthropicProvider()
 
     assert provider is not None
 
 
-def test_translates_missing_credentials_on_request() -> None:
+def test_translates_missing_credentials(client: MagicMock) -> None:
     error = TypeError(
         '"Could not resolve authentication method. Expected one of api_key, '
         'auth_token, or credentials to be set."'
     )
-    provider = make_failing_provider(error)
+    provider = make_failing_provider(client, error)
 
     with pytest.raises(LLMProviderError, match="No Anthropic credentials found"):
-        complete(provider, make_request())
+        generate(provider, make_request())
 
 
-def test_reraises_unrelated_type_error() -> None:
+def test_reraises_unrelated_type_error(client: MagicMock) -> None:
     error = TypeError("unexpected keyword argument 'foo'")
-    provider = make_failing_provider(error)
+    provider = make_failing_provider(client, error)
 
     with pytest.raises(TypeError, match="foo"):
-        complete(provider, make_request())
+        generate(provider, make_request())

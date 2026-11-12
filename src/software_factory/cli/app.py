@@ -130,6 +130,7 @@ def _print_response(factory_config: FactoryConfig, response: LLMResponse) -> Non
     typer.echo(separator)
     typer.echo(f"Input tokens: {response.usage.input_tokens}")
     typer.echo(f"Output tokens: {response.usage.output_tokens}")
+    typer.echo(f"Stop reason: {response.stop_reason.value}")
     typer.echo(f"Request ID: {response.request_id or 'n/a'}")
 
 

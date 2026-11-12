@@ -12,4 +12,4 @@ class AskLLM:
         self._provider = provider
 
     async def execute(self, request: LLMRequest) -> LLMResponse:
-        return await self._provider.complete(request)
+        return await self._provider.generate(request)
