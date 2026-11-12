@@ -9,7 +9,11 @@ from software_factory.infrastructure.config.schema import FactoryConfig
 
 VALID_CONFIG: dict[str, Any] = {
     "factory": {"name": "software-factory", "environment": "local"},
-    "llm": {"provider": "anthropic", "model": "claude-opus-5-5"},
+    "llm": {
+        "provider": "anthropic",
+        "model": "claude-opus-5-5",
+        "max_output_tokens": 1024,
+    },
     "runtime": {"workspace": "./workspace", "max_iterations": 10},
 }
 
@@ -34,6 +38,7 @@ def test_loads_valid_config(tmp_path: Path) -> None:
     assert config.factory.environment == "local"
     assert config.llm.provider == "anthropic"
     assert config.llm.model == "claude-opus-5-5"
+    assert config.llm.max_output_tokens == 1024
     assert config.runtime.workspace == Path("./workspace")
     assert config.runtime.max_iterations == 10
 
@@ -60,6 +65,12 @@ def test_reports_all_errors_from_example(tmp_path: Path) -> None:
         ("llm", "provider", "openai"),
         ("llm", "model", ""),
         ("llm", "model", "   "),
+        ("llm", "max_output_tokens", 0),
+        ("llm", "max_output_tokens", -1),
+        ("llm", "max_output_tokens", "1024"),
+        ("llm", "max_output_tokens", 1.5),
+        ("llm", "max_output_tokens", True),
+        ("llm", "max_output_tokens", None),
         ("runtime", "max_iterations", 0),
         ("runtime", "max_iterations", -10),
         ("runtime", "max_iterations", "10"),
@@ -85,6 +96,7 @@ def test_rejects_invalid_field(
         ("factory", "environment"),
         ("llm", "provider"),
         ("llm", "model"),
+        ("llm", "max_output_tokens"),
         ("runtime", "workspace"),
         ("runtime", "max_iterations"),
     ],

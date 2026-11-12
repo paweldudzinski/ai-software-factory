@@ -1,9 +1,8 @@
 from enum import Enum
-from typing import Annotated
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict
 
-NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+from .types import NonEmptyStr
 
 
 class TaskStatus(Enum):

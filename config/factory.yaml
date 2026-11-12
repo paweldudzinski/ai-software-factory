@@ -4,7 +4,8 @@ factory:
 
 llm:
   provider: anthropic
-  model: YOUR_MODEL
+  model: claude-sonnet-5-5
+  max_output_tokens: 2048
 
 runtime:
   workspace: ./workspace

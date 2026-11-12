@@ -14,6 +14,7 @@ factory:
 llm:
   provider: anthropic
   model: test-model
+  max_output_tokens: 1024
 
 runtime:
   workspace: ./workspace

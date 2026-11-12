@@ -26,6 +26,7 @@ class FactorySettings(_Settings):
 class LLMSettings(_Settings):
     provider: Literal["anthropic"]
     model: NonEmptyStr
+    max_output_tokens: Annotated[StrictInt, Field(gt=0)]
 
 
 class RuntimeSettings(_Settings):
