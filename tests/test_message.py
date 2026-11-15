@@ -4,13 +4,14 @@ import pytest
 from pydantic import ValidationError
 
 from software_factory.domain.llm.blocks import (
+    MessageBlock,
     TextBlock,
     ToolResultBlock,
     ToolUseBlock,
 )
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 
-HELLO = [TextBlock(text="Hello")]
+HELLO: list[MessageBlock] = [TextBlock(text="Hello")]
 TOOL_USE = ToolUseBlock(tool_name="search", args={"q": "x"}, tool_use_id="toolu_1")
 TOOL_RESULT = ToolResultBlock(tool_use_id="toolu_1", content="3 results")
 
@@ -49,7 +50,7 @@ def test_rejects_missing_role() -> None:
 
 
 def test_accepts_every_message_block_type() -> None:
-    content = [TextBlock(text="Found it."), TOOL_USE, TOOL_RESULT]
+    content: list[MessageBlock] = [TextBlock(text="Found it."), TOOL_USE, TOOL_RESULT]
 
     message = LLMMessage(role=MessageRole.USER, content=content)
 
