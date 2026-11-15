@@ -151,6 +151,10 @@ def _format_block(block: ContentBlock) -> str:
         case ToolUseBlock():
             args = json.dumps(block.args, ensure_ascii=False)
             return f"Tool call: {block.tool_name} {args} (id: {block.tool_use_id})"
+        case _:
+            # Unreachable for today's ContentBlock; a safety net for block
+            # types added to the domain before the CLI learns to render them.
+            return f"(other block: {block.type})"  # type: ignore[unreachable]
 
 
 def _fail(message: str) -> NoReturn:
