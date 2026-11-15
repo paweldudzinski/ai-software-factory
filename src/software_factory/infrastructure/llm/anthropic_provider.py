@@ -2,8 +2,14 @@ from typing import cast
 
 import anthropic
 from anthropic import AsyncAnthropic, omit
-from anthropic.types import AssistantMessageParam, Message, MessageParam
+from anthropic.types import (
+    AssistantMessageParam,
+    Message,
+    MessageParam,
+    RedactedThinkingBlock,
+)
 from anthropic.types import TextBlock as AnthropicTextBlock
+from anthropic.types import ThinkingBlock
 from anthropic.types import ToolUseBlock as AnthropicToolUseBlock
 from anthropic.types import UserMessageParam
 
@@ -116,6 +122,16 @@ class AnthropicProvider:
                             args=cast(dict[str, JSONValue], block.input),
                             tool_use_id=block.id,
                         )
+                    )
+                case ThinkingBlock() | RedactedThinkingBlock():
+                    # Deliberately ignored: the model's reasoning is not part
+                    # of the domain contract yet.
+                    continue
+                case _:
+                    # Any other block may carry information we would silently
+                    # lose, so fail loudly until the domain supports it.
+                    raise AnthropicProviderError(
+                        f"Unsupported content block type {block.type!r}"
                     )
         return blocks
 
