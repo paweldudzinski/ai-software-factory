@@ -6,14 +6,9 @@ from typer.testing import CliRunner
 from software_factory.application.ports.llm_provider import LLMProviderError
 from software_factory.application.use_cases.ask_llm import AskLLM
 from software_factory.cli.app import app
+from software_factory.domain.llm.blocks import TextBlock, ToolUseBlock
 from software_factory.domain.llm.message import LLMMessage, MessageRole
-from software_factory.domain.llm.response import (
-    LLMResponse,
-    LLMUsage,
-    StopReason,
-    TextBlock,
-    ToolUseBlock,
-)
+from software_factory.domain.llm.response import LLMResponse, LLMUsage, StopReason
 from software_factory.infrastructure.config.schema import FactoryConfig
 from tests.test_ask_llm import FakeProvider
 from tests.test_cli import SAMPLE_CONFIG

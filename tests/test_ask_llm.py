@@ -4,14 +4,10 @@ import pytest
 
 from software_factory.application.ports.llm_provider import LLMProviderError
 from software_factory.application.use_cases.ask_llm import AskLLM
+from software_factory.domain.llm.blocks import TextBlock
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
-from software_factory.domain.llm.response import (
-    LLMResponse,
-    LLMUsage,
-    StopReason,
-    TextBlock,
-)
+from software_factory.domain.llm.response import LLMResponse, LLMUsage, StopReason
 
 REQUEST = LLMRequest(
     model="claude-sonnet-5-5",

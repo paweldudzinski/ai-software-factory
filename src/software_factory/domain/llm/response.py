@@ -1,9 +1,10 @@
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, computed_field
 
-from ..types import JSONValue, Model, NonEmptyStr
+from ..types import Model, NonEmptyStr
+from .blocks import ContentBlock
 
 TokenCount = Annotated[StrictInt, Field(ge=0)]
 
@@ -36,28 +37,6 @@ class LLMUsage(BaseModel):
     @property
     def total_tokens(self) -> int:
         return self.input_tokens + self.output_tokens
-
-
-class TextBlock(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    type: Literal["text"] = "text"
-    text: NonEmptyStr
-
-
-class ToolUseBlock(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    type: Literal["tool_use"] = "tool_use"
-    tool_name: NonEmptyStr
-    args: dict[str, JSONValue]
-    tool_use_id: NonEmptyStr
-
-
-ContentBlock = Annotated[
-    TextBlock | ToolUseBlock,
-    Field(discriminator="type"),
-]
 
 
 class LLMResponse(BaseModel):

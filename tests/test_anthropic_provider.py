@@ -12,14 +12,10 @@ from software_factory.application.ports.llm_provider import (
     LLMProvider,
     LLMProviderError,
 )
+from software_factory.domain.llm.blocks import TextBlock, ToolUseBlock
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
-from software_factory.domain.llm.response import (
-    LLMResponse,
-    StopReason,
-    TextBlock,
-    ToolUseBlock,
-)
+from software_factory.domain.llm.response import LLMResponse, StopReason
 from software_factory.infrastructure.llm.anthropic_provider import (
     AnthropicProvider,
     AnthropicProviderError,
@@ -214,9 +210,7 @@ def test_raises_on_unsupported_block_type(client: MagicMock) -> None:
         "name": "web_search",
         "input": {"query": "pydantic"},
     }
-    provider, _ = make_provider(
-        client, make_message(content=[TEXT, server_tool_use])
-    )
+    provider, _ = make_provider(client, make_message(content=[TEXT, server_tool_use]))
 
     with pytest.raises(
         AnthropicProviderError, match="Unsupported content block type 'server_tool_use'"

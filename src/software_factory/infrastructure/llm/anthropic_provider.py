@@ -14,16 +14,10 @@ from anthropic.types import ToolUseBlock as AnthropicToolUseBlock
 from anthropic.types import UserMessageParam
 
 from software_factory.application.ports.llm_provider import LLMProviderError
+from software_factory.domain.llm.blocks import ContentBlock, TextBlock, ToolUseBlock
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
-from software_factory.domain.llm.response import (
-    ContentBlock,
-    LLMResponse,
-    LLMUsage,
-    StopReason,
-    TextBlock,
-    ToolUseBlock,
-)
+from software_factory.domain.llm.response import LLMResponse, LLMUsage, StopReason
 from software_factory.domain.types import JSONValue
 
 _MISSING_CREDENTIALS = (

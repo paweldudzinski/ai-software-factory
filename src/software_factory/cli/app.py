@@ -11,15 +11,10 @@ from rich.markup import escape
 
 from software_factory.application.ports.llm_provider import LLMProviderError
 from software_factory.bootstrap import build_ask_llm
+from software_factory.domain.llm.blocks import ContentBlock, TextBlock, ToolUseBlock
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
-from software_factory.domain.llm.response import (
-    ContentBlock,
-    LLMResponse,
-    StopReason,
-    TextBlock,
-    ToolUseBlock,
-)
+from software_factory.domain.llm.response import LLMResponse, StopReason
 from software_factory.infrastructure.config.loader import (
     ConfigError,
     load_config,
