@@ -22,6 +22,9 @@ class ToolUseBlock(BaseModel):
 
 
 class ToolResultBlock(BaseModel):
+    """
+    This is not a part of Anthopic official response
+    """
     type: Literal["tool_result"] = "tool_result"
     tool_use_id: NonEmptyStr
     content: str
