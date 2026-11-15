@@ -21,6 +21,18 @@ class ToolUseBlock(BaseModel):
     tool_use_id: NonEmptyStr
 
 
+class ToolResultBlock(BaseModel):
+    type: Literal["tool_result"] = "tool_result"
+    tool_use_id: NonEmptyStr
+    content: str
+
+
+MessageBlock = Annotated[
+    TextBlock | ToolUseBlock | ToolResultBlock,
+    Field(discriminator="type"),
+]
+
+
 ContentBlock = Annotated[
     TextBlock | ToolUseBlock,
     Field(discriminator="type"),
