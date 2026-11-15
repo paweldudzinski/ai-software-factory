@@ -62,7 +62,11 @@ def test_parses_blocks_from_dicts_by_type() -> None:
         {
             "role": "user",
             "content": [
-                {"type": "tool_result", "tool_use_id": "toolu_1", "content": "3 results"},
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_1",
+                    "content": "3 results",
+                },
                 {"type": "text", "text": "Hello"},
             ],
         }
@@ -91,6 +95,11 @@ def test_rejects_invalid_block(block: dict[str, Any]) -> None:
         LLMMessage(role=MessageRole.USER, content=[block])  # type: ignore[list-item]
 
 
+def test_rejects_empty_content() -> None:
+    with pytest.raises(ValidationError, match=r"content\s+List should have at least 1"):
+        LLMMessage(role=MessageRole.USER, content=[])
+
+
 def test_rejects_missing_content() -> None:
     with pytest.raises(ValidationError, match=r"content\s+Field required"):
         LLMMessage(role=MessageRole.USER)  # type: ignore[call-arg]
@@ -98,7 +107,9 @@ def test_rejects_missing_content() -> None:
 
 def test_rejects_extra_fields() -> None:
     with pytest.raises(ValidationError, match="name"):
-        LLMMessage.model_validate({"role": "user", "content": [], "name": "bob"})
+        LLMMessage.model_validate(
+            {"role": "user", "content": [{"type": "text", "text": "Hi"}], "name": "bob"}
+        )
 
 
 def test_is_immutable() -> None:

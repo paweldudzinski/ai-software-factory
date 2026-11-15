@@ -91,7 +91,9 @@ def test_maps_request_to_messages_api_params(client: MagicMock) -> None:
         messages=[
             LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Hi")]),
             LLMMessage(role=MessageRole.ASSISTANT, content=[TextBlock(text="Hello!")]),
-            LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Write a test.")]),
+            LLMMessage(
+                role=MessageRole.USER, content=[TextBlock(text="Write a test.")]
+            ),
         ],
     )
 

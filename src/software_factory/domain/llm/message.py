@@ -1,9 +1,7 @@
 from enum import Enum
+from typing import Annotated
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-)
+from pydantic import BaseModel, ConfigDict, Field
 
 from .blocks import MessageBlock
 
@@ -21,4 +19,4 @@ class LLMMessage(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     role: MessageRole
-    content: list[MessageBlock]
+    content: Annotated[list[MessageBlock], Field(min_length=1)]

@@ -44,7 +44,9 @@ def test_accepts_explicit_none_system_prompt() -> None:
 def test_accepts_multiple_messages() -> None:
     messages = [
         USER_MESSAGE,
-        LLMMessage(role=MessageRole.ASSISTANT, content=[TextBlock(text="Hi! How can I help?")]),
+        LLMMessage(
+            role=MessageRole.ASSISTANT, content=[TextBlock(text="Hi! How can I help?")]
+        ),
         LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Write a test.")]),
     ]
 
