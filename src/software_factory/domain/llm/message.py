@@ -5,7 +5,7 @@ from pydantic import (
     ConfigDict,
 )
 
-from ..types import NonEmptyStr
+from .blocks import MessageBlock
 
 
 class MessageRole(Enum):
@@ -18,7 +18,7 @@ class LLMMessage(BaseModel):
     A single, immutable message in a conversation with an LLM.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     role: MessageRole
-    content: NonEmptyStr
+    content: list[MessageBlock]

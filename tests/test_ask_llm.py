@@ -11,7 +11,7 @@ from software_factory.domain.llm.response import LLMResponse, LLMUsage, StopReas
 
 REQUEST = LLMRequest(
     model="claude-sonnet-5-5",
-    messages=[LLMMessage(role=MessageRole.USER, content="Hi")],
+    messages=[LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Hi")])],
     max_tokens=1024,
 )
 RESPONSE = LLMResponse(

@@ -3,7 +3,11 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from software_factory.domain.llm.blocks import TextBlock, ToolUseBlock
+from software_factory.domain.llm.blocks import (
+    TextBlock,
+    ToolResultBlock,
+    ToolUseBlock,
+)
 
 TEXT = TextBlock(text="Hello!")
 TOOL_USE = ToolUseBlock(
@@ -103,3 +107,68 @@ def test_tool_use_block_rejects_missing_field(field: str) -> None:
 def test_tool_use_block_is_immutable() -> None:
     with pytest.raises(ValidationError):
         TOOL_USE.tool_name = "other"
+
+
+# --- ToolResultBlock --------------------------------------------------------
+
+
+def test_tool_result_block_has_tool_result_type() -> None:
+    block = ToolResultBlock(tool_use_id="toolu_1", content="3 results")
+
+    assert block.type == "tool_result"
+    assert block.tool_use_id == "toolu_1"
+    assert block.content == "3 results"
+
+
+@pytest.mark.parametrize("content", ["", "  indented\n"])
+def test_tool_result_block_keeps_content_as_is(content: str) -> None:
+    block = ToolResultBlock(tool_use_id="toolu_1", content=content)
+
+    assert block.content == content
+
+
+@pytest.mark.parametrize("tool_use_id", ["", "   "])
+def test_tool_result_block_rejects_empty_tool_use_id(tool_use_id: str) -> None:
+    with pytest.raises(ValidationError, match="tool_use_id"):
+        ToolResultBlock(tool_use_id=tool_use_id, content="ok")
+
+
+@pytest.mark.parametrize("content", [None, 42, {"rows": 3}, ["a"]])
+def test_tool_result_block_rejects_non_string_content(content: Any) -> None:
+    with pytest.raises(ValidationError, match="content"):
+        ToolResultBlock(tool_use_id="toolu_1", content=content)
+
+
+@pytest.mark.parametrize("field", ["tool_use_id", "content"])
+def test_tool_result_block_rejects_missing_field(field: str) -> None:
+    data: dict[str, Any] = {"tool_use_id": "toolu_1", "content": "ok"}
+    del data[field]
+
+    with pytest.raises(ValidationError, match=rf"{field}\s+Field required"):
+        ToolResultBlock(**data)
+
+
+def test_tool_result_block_is_immutable() -> None:
+    block = ToolResultBlock(tool_use_id="toolu_1", content="ok")
+
+    with pytest.raises(ValidationError):
+        block.content = "changed"
+
+
+# --- all blocks -------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("block_class", "data"),
+    [
+        (TextBlock, {"text": "Hi"}),
+        (ToolUseBlock, {"tool_name": "search", "args": {}, "tool_use_id": "t"}),
+        (ToolResultBlock, {"tool_use_id": "t", "content": "ok"}),
+    ],
+)
+def test_blocks_reject_extra_fields(
+    block_class: type[TextBlock | ToolUseBlock | ToolResultBlock],
+    data: dict[str, Any],
+) -> None:
+    with pytest.raises(ValidationError, match="unexpected"):
+        block_class.model_validate({**data, "unexpected": 1})

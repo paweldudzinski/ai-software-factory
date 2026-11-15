@@ -25,6 +25,8 @@ class ToolResultBlock(BaseModel):
     """
     This is not a part of Anthopic official response
     """
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     type: Literal["tool_result"] = "tool_result"
     tool_use_id: NonEmptyStr
     content: str

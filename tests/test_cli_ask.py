@@ -88,7 +88,7 @@ def test_builds_request_from_config_and_prompt(
     assert request.max_tokens == 1024
     assert request.system_prompt is None
     assert request.messages == [
-        LLMMessage(role=MessageRole.USER, content="Explain event-driven architecture")
+        LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Explain event-driven architecture")])
     ]
 
 

@@ -70,7 +70,7 @@ def make_provider(
 def make_request(**overrides: Any) -> LLMRequest:
     data: dict[str, Any] = {
         "model": MODEL,
-        "messages": [LLMMessage(role=MessageRole.USER, content="Hi")],
+        "messages": [LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Hi")])],
         "max_tokens": 1024,
     }
     data.update(overrides)
@@ -89,9 +89,9 @@ def test_maps_request_to_messages_api_params(client: MagicMock) -> None:
     request = make_request(
         system_prompt="You are a helpful assistant.",
         messages=[
-            LLMMessage(role=MessageRole.USER, content="Hi"),
-            LLMMessage(role=MessageRole.ASSISTANT, content="Hello!"),
-            LLMMessage(role=MessageRole.USER, content="Write a test."),
+            LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Hi")]),
+            LLMMessage(role=MessageRole.ASSISTANT, content=[TextBlock(text="Hello!")]),
+            LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Write a test.")]),
         ],
     )
 
@@ -101,9 +101,12 @@ def test_maps_request_to_messages_api_params(client: MagicMock) -> None:
         model=MODEL,
         max_tokens=1024,
         messages=[
-            {"role": "user", "content": "Hi"},
-            {"role": "assistant", "content": "Hello!"},
-            {"role": "user", "content": "Write a test."},
+            {"role": "user", "content": [{"type": "text", "text": "Hi"}]},
+            {"role": "assistant", "content": [{"type": "text", "text": "Hello!"}]},
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": "Write a test."}],
+            },
         ],
         system="You are a helpful assistant.",
     )

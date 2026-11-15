@@ -3,10 +3,11 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from software_factory.domain.llm.blocks import TextBlock
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
 
-USER_MESSAGE = LLMMessage(role=MessageRole.USER, content="Hello")
+USER_MESSAGE = LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Hello")])
 
 
 def make_request(**overrides: Any) -> LLMRequest:
@@ -43,8 +44,8 @@ def test_accepts_explicit_none_system_prompt() -> None:
 def test_accepts_multiple_messages() -> None:
     messages = [
         USER_MESSAGE,
-        LLMMessage(role=MessageRole.ASSISTANT, content="Hi! How can I help?"),
-        LLMMessage(role=MessageRole.USER, content="Write a test."),
+        LLMMessage(role=MessageRole.ASSISTANT, content=[TextBlock(text="Hi! How can I help?")]),
+        LLMMessage(role=MessageRole.USER, content=[TextBlock(text="Write a test.")]),
     ]
 
     request = make_request(messages=messages)
@@ -53,7 +54,9 @@ def test_accepts_multiple_messages() -> None:
 
 
 def test_parses_messages_from_dicts() -> None:
-    request = make_request(messages=[{"role": "user", "content": "Hello"}])
+    request = make_request(
+        messages=[{"role": "user", "content": [{"type": "text", "text": "Hello"}]}]
+    )
 
     assert request.messages == [USER_MESSAGE]
 
