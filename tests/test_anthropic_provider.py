@@ -14,7 +14,12 @@ from software_factory.application.ports.llm_provider import (
 )
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
-from software_factory.domain.llm.response import LLMResponse, StopReason
+from software_factory.domain.llm.response import (
+    LLMResponse,
+    StopReason,
+    TextBlock,
+    ToolUseBlock,
+)
 from software_factory.infrastructure.llm.anthropic_provider import (
     AnthropicProvider,
     AnthropicProviderError,
@@ -120,12 +125,16 @@ def test_omits_system_when_no_system_prompt(client: MagicMock) -> None:
 # --- response mapping -------------------------------------------------------
 
 
+def text_block(text: str) -> dict[str, Any]:
+    return {"type": "text", "text": text, "citations": None}
+
+
 def test_maps_response(client: MagicMock) -> None:
     provider, _ = make_provider(client, make_message())
 
     response = generate(provider, make_request())
 
-    assert response.content == "Hello!"
+    assert response.content == [TextBlock(text="Hello!")]
     assert response.model == MODEL
     assert response.stop_reason is StopReason.END_TURN
     assert response.usage.input_tokens == 120
@@ -133,46 +142,88 @@ def test_maps_response(client: MagicMock) -> None:
     assert response.request_id == REQUEST_ID
 
 
-def test_skips_non_text_blocks_before_text(client: MagicMock) -> None:
-    provider, _ = make_provider(client, make_message(content=[THINKING, TEXT]))
-
-    response = generate(provider, make_request())
-
-    assert response.content == "Hello!"
-
-
-def test_concatenates_multiple_text_blocks(client: MagicMock) -> None:
-    blocks: list[dict[str, Any]] = [
-        {"type": "text", "text": "The answer ", "citations": None},
-        THINKING,
-        {"type": "text", "text": "is 42.", "citations": None},
-    ]
+def test_keeps_each_text_block_separate(client: MagicMock) -> None:
+    blocks = [text_block("First part."), text_block("Second part.")]
     provider, _ = make_provider(client, make_message(content=blocks))
 
     response = generate(provider, make_request())
 
-    assert response.content == "The answer is 42."
+    assert response.content == [
+        TextBlock(text="First part."),
+        TextBlock(text="Second part."),
+    ]
 
 
-@pytest.mark.parametrize(
-    ("content", "stop_reason"),
-    [
-        ([], "refusal"),
-        ([THINKING], "max_tokens"),
-        ([THINKING, TOOL_USE], "tool_use"),
-    ],
-)
-def test_returns_empty_content_when_no_text(
-    client: MagicMock, content: list[dict[str, Any]], stop_reason: str
+def test_keeps_order_of_supported_blocks_and_skips_thinking(
+    client: MagicMock,
 ) -> None:
+    blocks = [text_block("Let me search."), THINKING, TOOL_USE, text_block("Done.")]
     provider, _ = make_provider(
-        client, make_message(content=content, stop_reason=stop_reason)
+        client, make_message(content=blocks, stop_reason="tool_use")
     )
 
     response = generate(provider, make_request())
 
-    assert response.content == ""
-    assert response.stop_reason is StopReason(stop_reason)
+    assert response.content == [
+        TextBlock(text="Let me search."),
+        ToolUseBlock(tool_name="search", args={}, tool_use_id="toolu_1"),
+        TextBlock(text="Done."),
+    ]
+
+
+@pytest.mark.parametrize(
+    "blocks",
+    [
+        [THINKING],
+        [THINKING, {"type": "redacted_thinking", "data": "encrypted"}],
+    ],
+)
+def test_returns_empty_content_when_only_thinking(
+    client: MagicMock, blocks: list[dict[str, Any]]
+) -> None:
+    provider, _ = make_provider(
+        client, make_message(content=blocks, stop_reason="max_tokens")
+    )
+
+    response = generate(provider, make_request())
+
+    assert response.content == []
+    assert response.stop_reason is StopReason.MAX_TOKENS
+
+
+def test_maps_tool_use_block(client: MagicMock) -> None:
+    args = {"query": "pydantic", "limit": 5, "filters": {"lang": ["en", "pl"]}}
+    block = {"type": "tool_use", "id": "toolu_42", "name": "search", "input": args}
+    provider, _ = make_provider(
+        client, make_message(content=[block], stop_reason="tool_use")
+    )
+
+    response = generate(provider, make_request())
+
+    [tool_use] = response.content
+    assert isinstance(tool_use, ToolUseBlock)
+    assert tool_use.tool_name == "search"
+    assert tool_use.args == args
+    assert tool_use.tool_use_id == "toolu_42"
+
+
+def test_raises_on_unsupported_block_type(client: MagicMock) -> None:
+    server_tool_use = {
+        "type": "server_tool_use",
+        "id": "srvtoolu_1",
+        "name": "web_search",
+        "input": {"query": "pydantic"},
+    }
+    provider, _ = make_provider(
+        client, make_message(content=[TEXT, server_tool_use])
+    )
+
+    with pytest.raises(
+        AnthropicProviderError, match="Unsupported content block type 'server_tool_use'"
+    ) as exc_info:
+        generate(provider, make_request())
+
+    assert exc_info.value.request_id == REQUEST_ID
 
 
 def test_allows_missing_request_id(client: MagicMock) -> None:
