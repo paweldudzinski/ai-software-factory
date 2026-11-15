@@ -96,7 +96,7 @@ class AnthropicProvider:
     def _to_response(cls, message: Message) -> LLMResponse:
         request_id = message._request_id
         return LLMResponse(
-            content=cls._to_content_blocks(message),
+            content=cls._to_content_blocks(message, request_id),
             model=message.model,
             stop_reason=cls._to_stop_reason(message, request_id),
             usage=LLMUsage(
@@ -107,7 +107,9 @@ class AnthropicProvider:
         )
 
     @staticmethod
-    def _to_content_blocks(message: Message) -> list[ContentBlock]:
+    def _to_content_blocks(
+        message: Message, request_id: str | None
+    ) -> list[ContentBlock]:
         blocks: list[ContentBlock] = []
         for block in message.content:
             match block:
@@ -131,7 +133,8 @@ class AnthropicProvider:
                     # Any other block may carry information we would silently
                     # lose, so fail loudly until the domain supports it.
                     raise AnthropicProviderError(
-                        f"Unsupported content block type {block.type!r}"
+                        f"Unsupported content block type {block.type!r}",
+                        request_id=request_id,
                     )
         return blocks
 
