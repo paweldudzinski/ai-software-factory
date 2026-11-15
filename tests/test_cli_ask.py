@@ -7,13 +7,19 @@ from software_factory.application.ports.llm_provider import LLMProviderError
 from software_factory.application.use_cases.ask_llm import AskLLM
 from software_factory.cli.app import app
 from software_factory.domain.llm.message import LLMMessage, MessageRole
-from software_factory.domain.llm.response import LLMResponse, LLMUsage, StopReason
+from software_factory.domain.llm.response import (
+    LLMResponse,
+    LLMUsage,
+    StopReason,
+    TextBlock,
+    ToolUseBlock,
+)
 from software_factory.infrastructure.config.schema import FactoryConfig
 from tests.test_ask_llm import FakeProvider
 from tests.test_cli import SAMPLE_CONFIG
 
 RESPONSE = LLMResponse(
-    content="Event-driven architecture is...",
+    content=[TextBlock(text="Event-driven architecture is...")],
     model="claude-sonnet-5-5",
     stop_reason=StopReason.END_TURN,
     usage=LLMUsage(input_tokens=12, output_tokens=150),
@@ -103,18 +109,46 @@ def test_warns_when_response_stopped_early(
     assert "Warning: response stopped early (stop reason: max_tokens)" in output
 
 
-def test_handles_response_without_text(
+def test_prints_blocks_in_order(
     runner: CliRunner, config_file: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    content = [
+        TextBlock(text="Let me search."),
+        ToolUseBlock(
+            tool_name="search",
+            args={"query": "zażółć", "limit": 5},
+            tool_use_id="toolu_1",
+        ),
+        TextBlock(text="Done."),
+    ]
     response = RESPONSE.model_copy(
-        update={"content": "", "stop_reason": StopReason.REFUSAL, "request_id": None}
+        update={"content": content, "stop_reason": StopReason.TOOL_USE}
     )
     use_provider(monkeypatch, FakeProvider(response))
 
     exit_code, output = ask(runner, config_file, "Hi")
 
     assert exit_code == 0, output
-    assert "(no text in response)" in output
+    assert (
+        "Response:\n"
+        "Let me search.\n"
+        'Tool call: search {"query": "zażółć", "limit": 5} (id: toolu_1)\n'
+        "Done.\n"
+    ) in output
+
+
+def test_handles_empty_response(
+    runner: CliRunner, config_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    response = RESPONSE.model_copy(
+        update={"content": [], "stop_reason": StopReason.REFUSAL, "request_id": None}
+    )
+    use_provider(monkeypatch, FakeProvider(response))
+
+    exit_code, output = ask(runner, config_file, "Hi")
+
+    assert exit_code == 0, output
+    assert "Response:\n(empty response)\n" in output
     assert "stop reason: refusal" in output
     assert "Request ID: n/a" in output
 

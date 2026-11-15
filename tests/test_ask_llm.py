@@ -6,7 +6,12 @@ from software_factory.application.ports.llm_provider import LLMProviderError
 from software_factory.application.use_cases.ask_llm import AskLLM
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
-from software_factory.domain.llm.response import LLMResponse, LLMUsage, StopReason
+from software_factory.domain.llm.response import (
+    LLMResponse,
+    LLMUsage,
+    StopReason,
+    TextBlock,
+)
 
 REQUEST = LLMRequest(
     model="claude-sonnet-5-5",
@@ -14,7 +19,7 @@ REQUEST = LLMRequest(
     max_tokens=1024,
 )
 RESPONSE = LLMResponse(
-    content="Hello!",
+    content=[TextBlock(text="Hello!")],
     model="claude-sonnet-5-5",
     stop_reason=StopReason.END_TURN,
     usage=LLMUsage(input_tokens=12, output_tokens=3),

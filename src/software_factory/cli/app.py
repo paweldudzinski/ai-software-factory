@@ -1,4 +1,5 @@
 import asyncio
+import json
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Annotated, NoReturn
@@ -12,7 +13,13 @@ from software_factory.application.ports.llm_provider import LLMProviderError
 from software_factory.bootstrap import build_ask_llm
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
-from software_factory.domain.llm.response import LLMResponse, StopReason
+from software_factory.domain.llm.response import (
+    ContentBlock,
+    LLMResponse,
+    StopReason,
+    TextBlock,
+    ToolUseBlock,
+)
 from software_factory.infrastructure.config.loader import (
     ConfigError,
     load_config,
@@ -120,7 +127,10 @@ def _print_response(factory_config: FactoryConfig, response: LLMResponse) -> Non
     typer.echo(f"Model: {response.model}")
     typer.echo()
     typer.echo("Response:")
-    typer.echo(response.content or "(no text in response)")
+    if not response.content:
+        typer.echo("(empty response)")
+    for block in response.content:
+        typer.echo(_format_block(block))
     if response.stop_reason is not StopReason.END_TURN:
         console.print(
             f"[bold yellow]Warning:[/] response stopped early "
@@ -132,6 +142,15 @@ def _print_response(factory_config: FactoryConfig, response: LLMResponse) -> Non
     typer.echo(f"Output tokens: {response.usage.output_tokens}")
     typer.echo(f"Stop reason: {response.stop_reason.value}")
     typer.echo(f"Request ID: {response.request_id or 'n/a'}")
+
+
+def _format_block(block: ContentBlock) -> str:
+    match block:
+        case TextBlock():
+            return block.text
+        case ToolUseBlock():
+            args = json.dumps(block.args, ensure_ascii=False)
+            return f"Tool call: {block.tool_name} {args} (id: {block.tool_use_id})"
 
 
 def _fail(message: str) -> NoReturn:
