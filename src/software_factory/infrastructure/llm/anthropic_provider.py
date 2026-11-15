@@ -1,17 +1,24 @@
+from typing import cast
+
 import anthropic
 from anthropic import AsyncAnthropic, omit
-from anthropic.types import (
-    AssistantMessageParam,
-    Message,
-    MessageParam,
-    TextBlock,
-    UserMessageParam,
-)
+from anthropic.types import AssistantMessageParam, Message, MessageParam
+from anthropic.types import TextBlock as AnthropicTextBlock
+from anthropic.types import ToolUseBlock as AnthropicToolUseBlock
+from anthropic.types import UserMessageParam
 
 from software_factory.application.ports.llm_provider import LLMProviderError
 from software_factory.domain.llm.message import LLMMessage, MessageRole
 from software_factory.domain.llm.request import LLMRequest
-from software_factory.domain.llm.response import LLMResponse, LLMUsage, StopReason
+from software_factory.domain.llm.response import (
+    ContentBlock,
+    LLMResponse,
+    LLMUsage,
+    StopReason,
+    TextBlock,
+    ToolUseBlock,
+)
+from software_factory.domain.types import JSONValue
 
 _MISSING_CREDENTIALS = (
     "No Anthropic credentials found. Set the ANTHROPIC_API_KEY environment "
@@ -83,7 +90,7 @@ class AnthropicProvider:
     def _to_response(cls, message: Message) -> LLMResponse:
         request_id = message._request_id
         return LLMResponse(
-            content=cls._extract_text(message),
+            content=cls._to_content_blocks(message),
             model=message.model,
             stop_reason=cls._to_stop_reason(message, request_id),
             usage=LLMUsage(
@@ -94,15 +101,23 @@ class AnthropicProvider:
         )
 
     @staticmethod
-    def _extract_text(message: Message) -> str:
-        # `content` is a list of blocks of mixed types (thinking, text, tool_use,
-        # ...), in no guaranteed order. Only text blocks form the reply; they are
-        # concatenated as-is because the API may split one answer into several
-        # blocks (e.g. around citations). No text at all yields "" - stop_reason
-        # tells the caller why.
-        return "".join(
-            block.text for block in message.content if isinstance(block, TextBlock)
-        )
+    def _to_content_blocks(message: Message) -> list[ContentBlock]:
+        blocks: list[ContentBlock] = []
+        for block in message.content:
+            match block:
+                case AnthropicTextBlock():
+                    blocks.append(TextBlock(text=block.text))
+                case AnthropicToolUseBlock():
+                    blocks.append(
+                        ToolUseBlock(
+                            tool_name=block.name,
+                            # The SDK types `input` loosely as dict[str, object];
+                            # pydantic validates it against JSONValue at runtime.
+                            args=cast(dict[str, JSONValue], block.input),
+                            tool_use_id=block.id,
+                        )
+                    )
+        return blocks
 
     @staticmethod
     def _to_stop_reason(message: Message, request_id: str | None) -> StopReason:
