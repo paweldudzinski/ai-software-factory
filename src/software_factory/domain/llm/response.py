@@ -27,7 +27,7 @@ class LLMUsage(BaseModel):
     Token usage reported by the provider for a single request.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     input_tokens: TokenCount
     output_tokens: TokenCount
@@ -39,14 +39,14 @@ class LLMUsage(BaseModel):
 
 
 class TextBlock(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     type: Literal["text"] = "text"
     text: NonEmptyStr
 
 
 class ToolUseBlock(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     type: Literal["tool_use"] = "tool_use"
     tool_name: NonEmptyStr
@@ -65,7 +65,7 @@ class LLMResponse(BaseModel):
     A single, immutable response returned by an LLM provider.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     content: list[ContentBlock]
     model: Model
